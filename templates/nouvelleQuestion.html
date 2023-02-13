@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+
+{% block content %}
+
+<div class="columns">
+    <div class="column">
+        <h3 class="title">Editeur</h3>
+        <form action="" method="POST">
+            <div class="field">
+                <label class="label">{{ form.enonce.label }}</label>
+                <div class="control">
+                    {{ form.enonce(class="input", placeholder="Saisir l'énoncé de votre question") }}
+                </div>
+            </div>
+
+            <div class="field">
+                <div id="inputsWrapper">
+                    <p><button class="button " id="add_button" name="add_button" type="button" value="">Ajouter Proposition</button></p>
+                </div>
+            </div>
+
+            <div class="field">
+            <label class="label">{{ form.etiquettes.label }}</label>
+                <div class="select is-multiple ">
+                    {{ form.etiquettes }} 
+                </div>
+            </div>
+
+            <div class="field">
+                <label class="label">{{ form.etiquette(class="input", placeholder="Saisir l'etiquette à rajouter") }}</label>
+                <div class="control">
+                    <button class="button" type="submit" formaction="/ajoutEtiquette" >Ajouter Etiquette</button>
+                </div>
+            </div>
+
+            <div class="control is-centered">
+                <div class="buttons is-centered">
+                    {{ form.submit(class="button is-link") }}
+                </div>
+            </div>                
+        </form>
+    </div>
+    <div class="column">
+        <h3 class="title">Visualisateur</h3>
+        <div class="field">
+            <label class="label">{{ form.enonce.label }}</label>
+            <div class="box">
+                <p id="enonce-output"></p>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">Propositions</label>
+            <label class="checkbox" id="propositions">
+            </label>
+        </div>
+        <div class="field">
+            <label class="label">Etiquettes</label>
+            <div id="etiquette-display">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+            

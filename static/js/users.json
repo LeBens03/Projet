@@ -1,0 +1,24 @@
+{
+	"users": [
+		{
+			"name": "Taha",
+			"email": "thbens123@gmail.com",
+			"password": "sha256$GyLLibcHc9dea498$7052ef4f6fd6b59f758274090173021924f7ab4dbb08ac999a7dbd66da3a3b2f"
+		},
+		{
+			"name": "Taha",
+			"email": "thbens12@gmail.com",
+			"password": "sha256$Vqp78sOmpQo2F4O3$e6df339f25104e096996b326c8b03e1ba3d36ef18cd5ab69c9b48e7d46b492fb"
+		},
+		{
+			"name": "Hassan",
+			"email": "hassanfayad57@gmail.com",
+			"password": "sha256$gyoqZFafwpQI89ye$b31f13c835768291b367bc9f1c1a28d7a452b90157605f0d87f3e497089b52c1"
+		},
+		{
+			"name": "Hassan",
+			"email": "hassan.login@hotmail.fr",
+			"password": "sha256$jNoRlEug2fZC3irR$c42da395c737777a5dc5b50b70a7d8f18fa8572a2498dfd56f757f1614becd97"
+		}
+	]
+}

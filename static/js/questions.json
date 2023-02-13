@@ -1,0 +1,45 @@
+{
+	"questions": [
+		{
+			"enonce": "1+1=2?",
+			"propositions": [
+				"Vrai",
+				"Faux"
+			],
+			"etiquettes": [
+				"Java\r\n"
+			]
+		},
+		{
+			"enonce": "Quelle est la somme des entiers allant de 1 a 15",
+			"propositions": [
+				"15",
+				"26"
+			],
+			"etiquettes": [
+				"POO\r\n"
+			]
+		},
+		{
+			"enonce": "What color is the sky",
+			"propositions": [
+				"Blue",
+				"Yellow"
+			],
+			"etiquettes": [
+				"Algorithmique\r\n"
+			]
+		},
+		{
+			"enonce": "1+1=2?",
+			"propositions": [
+				"Vrai",
+				"Faux"
+			],
+			"etiquettes": [
+				"Java\r\n",
+				"Algorithmique\r\n"
+			]
+		}
+	]
+}
