@@ -189,17 +189,25 @@ def pageQuestions():
         
     nb_Questions=len(questions)
 
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions,)  
+
+@app.route('/Home/pageDeQuestions/<nom_page>', methods=['POST', 'GET'])
+def genererPage(nom_page):
     if request.method == 'POST':
+        check_questions = []
+        titre = request.form["titre"]
         checked = request.form.getlist("check")
+
         for i in range(len(checked)):
-            if checked[i]=="on":
-                check_questions.append(i)
-        print(checked)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)  
+            with open(question_file) as file:
+                data=json.load(file)
+                questions=data["questions"]
+        
+            check_questions.append(questions[int(checked[i])-1])
 
-@app.route('/Home/pageDeQuestions/<nom_page>')
-def genererPage():
-    print("goog")
+        nbQuestions = len(check_questions)
+
+        return render_template("getPage.html", titre=titre, nbQuestions=nbQuestions, questions=check_questions)
     
 app.run(host='0.0.0.0', port=81, debug=True)
