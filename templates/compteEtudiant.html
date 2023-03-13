@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+
+<h1 class="title">Télécharger un fichier d'étudiants</h1>
+<form  enctype=multipart/form-data  action="/Home/compteEtudiants/creer" method="post">
+    <div class="field">
+        <input type="file" id="myFile" name="file">
+    </div>
+    <div class="control file">
+        <button class="button is-link is-centered btn-file">Créer</button>
+    </div>
+  </form>
+
+
+{% endblock %}
