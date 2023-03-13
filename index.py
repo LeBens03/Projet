@@ -8,7 +8,7 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 user_file = os.path.join(basedir, 'static/js/users.json')
 etiquette_file = os.path.join(basedir, 'static/txt/etiquettes.txt')
 question_file = os.path.join(basedir, 'static/js/questions.json')
-
+dictionnaireUtilisateurs = os.path.join(basedir,"static/js/dictionnaireUtiliasateur.json") 
 
 app = Flask(__name__)
 app.secret_key = "any random string"
@@ -135,8 +135,9 @@ def nouvelleQues():
     if request.method=='POST':
         enonce=request.form['enonce']
         propostions=request.form.getlist('proposition[]')
+        propCorrect=request.form.getlist('prop[]')
         etiquettes=form.etiquettes.data
-        dict = {"enonce" : enonce, "propositions" : propostions, "etiquettes" : etiquettes}
+        dict = {"enonce" : enonce, "propositions" : propostions, "propCorrect" : propCorrect , "etiquettes" : etiquettes}
 #Je rajoute la nouvelle question au fichier json, il ne faut pas qu'il soit vide pour ne pas générer d'erreurs
         with open(question_file) as file:
             data = json.load(file)
@@ -189,25 +190,89 @@ def pageQuestions():
         
     nb_Questions=len(questions)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions,)  
-
-@app.route('/Home/pageDeQuestions/<nom_page>', methods=['POST', 'GET'])
-def genererPage(nom_page):
     if request.method == 'POST':
-        check_questions = []
-        titre = request.form["titre"]
         checked = request.form.getlist("check")
-
         for i in range(len(checked)):
+            if checked[i]=="on":
+                check_questions.append(i)
+        print(checked)
 
-            with open(question_file) as file:
-                data=json.load(file)
-                questions=data["questions"]
-        
-            check_questions.append(questions[int(checked[i])-1])
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)  
+@app.route('/Home/AccesQuestion/<numQ>',methods=['POST','GET'])
+def AccesQuestion(numQ):
+    if request.method=='POST':
+        prop=request.form.getlist("proposition") # on recupere les reponse de l'etudiant
+        with open("./static/js/questions.json") as file:
+            data=json.load(file)
+            questions=data["questions"] # on recupere le dictionnaire des questions
+            compteur=1
+            for e in questions:        # on parcoure le dictionnaire
+                if(int(compteur)==int(numQ)): # quand le la variable incrementer egal le numero de la question on a reussi a avoir la question
+                    enonce=e["enonce"]
+                    proposition=e["propositions"]
+                    reponseCorrect=[]
+                    reponseAttendue=[]
+                    for reponseJuste in e["propCorrect"]: #on parcour les proposition correcte
+                        if reponseJuste in prop : # si les reponse etudiant on des reponse correct on les ajoute a reponseCorrect
+                            reponseCorrect.append(e["propositions"][int(reponseJuste)-1])
+                        else:
+                            reponseAttendue.append(e["propositions"][int(reponseJuste)-1]) # sinon on les ajoute aux reponse attendue
+                    return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e,resultat=("reponse correct"+str(reponseCorrect)+" le reste des reponse attendue"+str(reponseAttendue)))
+                else:
+                    compteur+=1 #variable incrementer pour trouver la bonne question
+        return "echec a acceder aux question <a href=/home>retour</a>"#si on trouve pas la question
+    else:
+        with open("./static/js/questions.json") as file:
+            data=json.load(file) # on recupere le dictionnaire des questions
+            questions=data["questions"]
+            compteur=1
+            for e in questions: #on parcoure le dictionnaire
+                if(int(compteur)==int(numQ)): # quand le la variable incrementer egal le numero de la question on a reussi a avoir la question
+                    return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e)
+                else:
+                    compteur+=1#variable incrementer pour trouver la bonne question
+        return "echec a acceder aux question <a href=/home>retour</a>"
 
-        nbQuestions = len(check_questions)
 
-        return render_template("getPage.html", titre=titre, nbQuestions=nbQuestions, questions=check_questions)
+'''
+@app.route('/inscrireEtudiant',methods=["POST","GET"])
+def inscrireEtudiant():
+    if request.method == "POST":
+        if 'CSV' not in request.files: # verifie si le post du formulaire renvoyer un fichier
+            return redirect(url_for("index"))
+        fichierCSV=request.files["CSV"]
+        if fichierCSV.filename == '':  # verifie si un fichier avec un nom a etait selectionner
+            return render_template("index.html",message="fichier non selectionner")
+        if fichierCSV and fichier_autoriser(fichierCSV.filename):
+            filename = secure_filename(fichierCSV.filename)#fonction qui verifie si le fichier n'essaye pas de modifier un fichier system
+            fichierCSV.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))#on enregistre le fichier csv a l'emplacement du serveur
+            f = open("./"+filename,"r")
+            enregistrement = f.read()
+            f.close()
+            listeLigne = enregistrement.split("\n") #on separe les ligne
+            for etu in listeLigne:
+                etudiant = etu.split(";")          # on separe les colonne
+                dictionnaireEtudiant= {"numeroEtudiant": etudiant[0],"nomEtudiant" : etudiant[1],"prenomEtudiant" : etudiant[2], "motdepasse" : etudiant[0]}
+                if etudiant[0]!="":
+                    with open(dictionnaireUtiliasateur):
+                        datadictionnaireUtilisateurs=json.load(dictionnaireUtiliasateur) # on transforme le contenue du fichier texte en dictionnaire
+                    for Etudiant in datadictionnaireUtilisateurs["Etudiant"]:
+                        if etudiant[0] == Etudiant["numeroEtudiant"] :
+                            return "erreur "+etudiant[0]+" deja inscrit<br><a href='/'>clicker ici pour retourner a l'acceuil</a>"
+                        else:
+                            datadictionnaireUtilisateurs["Etudiant"].append(dictionnaireEtudiant)
+                    with open(dictionnaireUtiliasateur,'w'):
+                        json.dump(datadictionnaireUtilisateurs,dictionnaireUtiliasateur,indent='\t')
+            return redirect(url_for('index'))
+    else:
+        return render_template("inscrireEtudiant.html")
+'''
+
+
+
+
+@app.route('/Home/pageDeQuestions/<nom_page>')
+def genererPage():
+    print("goog")
     
-app.run(host='0.0.0.0', port=81, debug=True)
+app.run(host='0.0.0.0', port=8887, debug=True)

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-4 is-offset-4">
+    <h3 class="title">Question {{ numQuestion }}</h3>
+    <div class="box">
+        <form method="POST">
+            <div class="is-grouped">
+                <label class="label">Etiquettes :</label>
+                {% for etiquette in question.etiquettes %}
+                <button class="button is-info" type="button">
+                {{etiquette}}
+                </button>
+                {% endfor %}
+            </div>
+            <div class="field">
+                <label class="label">Enoncé :</label>  <h5>{{question.enonce}}</h5>
+            </div>
+            <div class="field">
+                <label class="label">Propositions :</label>
+                {% set ns = namespace(i=1) %}
+                {% if question.propositions|length == 0 %}
+                    <input type="texte" name="proposition" value="{{ns.i}}">
+                    
+                </label>
+                {% else %}
+                {% for proposition in question.propositions %}
+                <label class="radio">
+                    <input type="checkbox" name="proposition" value="{{ns.i}}">
+                    {{proposition}}
+                </label>
+                {%- set ns.i = ns.i+1 %}
+                {% endfor %}
+                {% endif %}
+                <input type="submit">
+
+            </div>
+            <p>{{resultat}}</p>
+            
+        </form>
+    </d
+{% endblock %}
