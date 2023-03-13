@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-4 is-offset-4">
+    <h3 class="title">Question {{ numQuestion }}</h3>
+    <div class="box">
+        <form method="POST" action="/login">
+            <div class="is-grouped">
+                <label class="label">Etiquettes :</label>
+                {% for etiquette in question.etiquettes %}
+                <button class="button is-info" type="button">
+                {{etiquette}}
+                </button>
+                {% endfor %}
+            </div>
+            <div class="field">
+                <label class="label">Enoncé :</label>  <h5>{{question.enonce}}</h5>
+            </div>
+            <div class="field">
+                <label class="label">Propositions :</label>
+                {% if question.propositions|length == 0 %}
+                    <input type="texte" name="proposition">
+                </label>
+                {% else %}
+                {% for proposition in question.propositions %}
+                <label class="radio">
+                    <input type="radio" name="proposition">
+                    {{proposition}}
+                </label>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div class="field">
+                <button class="button is-success" type="button">
+                    <span class="icon is-small">
+                      <i class="fas fa-check"></i>
+                    </span>
+                    <span>Modifier</span>
+                  </button>
+                <button class="button is-danger" type="submit" formaction="/supprimerQuestion/{{numQuestion}}">Supprimer
+                    <span class="icon is-small">
+                      <i class="fas fa-times"></i>
+                    </span>
+                  </button>
+                </p>
+            </div>
+        </form>
+    </d
+{% endblock %}
+
