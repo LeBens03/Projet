@@ -234,45 +234,75 @@ def AccesQuestion(numQ):
         return "echec a acceder aux question <a href=/home>retour</a>"
 
 
-'''
-@app.route('/inscrireEtudiant',methods=["POST","GET"])
+@app.route('/Home/pageDeQuestions')
+def pageQuestions():
+#Je crée une page avec tout les questions pour en choisir et génerer une page de questions  
+    form = nouvelleQuestion()
+    form.etiquettes.choices=getEtiquettes()
+    with open(question_file) as file:
+        data=json.load(file)
+        questions=data["questions"]
+        
+    nb_Questions=len(questions)
+
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions,)  
+
+@app.route('/Home/pageDeQuestions/<nom_page>', methods=['POST', 'GET'])
+def genererPage(nom_page):
+    if request.method == 'POST':
+        check_questions = []
+        titre = request.form["titre"]
+        checked = request.form.getlist("check")
+
+        for i in range(len(checked)):
+
+            with open(question_file) as file:
+                data=json.load(file)
+                questions=data["questions"]
+        
+            check_questions.append(questions[int(checked[i])-1])
+
+        nbQuestions = len(check_questions)
+
+        return render_template("getPage.html", titre=titre, nbQuestions=nbQuestions, questions=check_questions)
+
+@app.route('/Home/compteEtudiants')
+def compteEtudiants():
+    return render_template("compteEtudiant.html")
+
+@app.route('/Home/compteEtudiants/creer', methods=["POST","GET"])
 def inscrireEtudiant():
+
     if request.method == "POST":
-        if 'CSV' not in request.files: # verifie si le post du formulaire renvoyer un fichier
-            return redirect(url_for("index"))
-        fichierCSV=request.files["CSV"]
-        if fichierCSV.filename == '':  # verifie si un fichier avec un nom a etait selectionner
-            return render_template("index.html",message="fichier non selectionner")
-        if fichierCSV and fichier_autoriser(fichierCSV.filename):
-            filename = secure_filename(fichierCSV.filename)#fonction qui verifie si le fichier n'essaye pas de modifier un fichier system
-            fichierCSV.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))#on enregistre le fichier csv a l'emplacement du serveur
-            f = open("./"+filename,"r")
-            enregistrement = f.read()
-            f.close()
-            listeLigne = enregistrement.split("\n") #on separe les ligne
-            for etu in listeLigne:
-                etudiant = etu.split(";")          # on separe les colonne
-                dictionnaireEtudiant= {"numeroEtudiant": etudiant[0],"nomEtudiant" : etudiant[1],"prenomEtudiant" : etudiant[2], "motdepasse" : etudiant[0]}
-                if etudiant[0]!="":
-                    with open(dictionnaireUtiliasateur):
-                        datadictionnaireUtilisateurs=json.load(dictionnaireUtiliasateur) # on transforme le contenue du fichier texte en dictionnaire
-                    for Etudiant in datadictionnaireUtilisateurs["Etudiant"]:
-                        if etudiant[0] == Etudiant["numeroEtudiant"] :
-                            return "erreur "+etudiant[0]+" deja inscrit<br><a href='/'>clicker ici pour retourner a l'acceuil</a>"
-                        else:
-                            datadictionnaireUtilisateurs["Etudiant"].append(dictionnaireEtudiant)
-                    with open(dictionnaireUtiliasateur,'w'):
-                        json.dump(datadictionnaireUtilisateurs,dictionnaireUtiliasateur,indent='\t')
-            return redirect(url_for('index'))
-    else:
-        return render_template("inscrireEtudiant.html")
-'''
+        if 'file' not in request.files: # verifie si le post du formulaire renvoyer un fichier
+            return redirect(url_for("home"))
+        
+        fichierCSV=request.files["file"]
+        
 
+        #if fichierCSV.filename == '':  # verifie si un fichier avec un nom a etait selectionner
+        #    return render_template("home.html",message="fichier non selectionner")
 
+        filename = secure_filename(fichierCSV.filename)#fonction qui verifie si le fichier n'essaye pas de modifier un fichier system
 
+        with open(filename,"r") as file:
 
-@app.route('/Home/pageDeQuestions/<nom_page>')
-def genererPage():
-    print("goog")
+            csvreader = csv.reader(file)
+
+            for row in csvreader: 
+                dict = {"Nom": row[0], "Prenom": row[1], "Numero Etudiant": row[2]}
+
+                with open(etudiants_file) as f:
+                      data=json.load(f)
+                      existe=False
+                      for etudiant in data["Etudiants"]:
+                        if row[2] == etudiant["Numero Etudiant"]:
+                            existe=True
+                      if existe==False:
+                        data["Etudiants"].append(dict)
+                      with open(etudiants_file, 'w') as f:
+                        json.dump(data,f,indent='\t')
+  
+        return redirect(url_for('home')))
     
 app.run(host='0.0.0.0', port=8887, debug=True)
