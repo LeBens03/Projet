@@ -1,0 +1,29 @@
+{
+	"Etudiants": [
+		{
+			"Nom": "Djaouane",
+			"Prenom": "Hamid",
+			"Numero Etudiant": "e22113456"
+		},
+		{
+			"Nom": "Lahlou",
+			"Prenom": "Mhammed",
+			"Numero Etudiant": "e22125656"
+		},
+		{
+			"Nom": "Doe",
+			"Prenom": "John",
+			"Numero Etudiant": "e22113678"
+		},
+		{
+			"Nom": "Jack",
+			"Prenom": "Luv",
+			"Numero Etudiant": "e22113344"
+		},
+		{
+			"Nom": "Label",
+			"Prenom": "Habibi",
+			"Numero Etudiant": "e24567890"
+		}
+	]
+}
