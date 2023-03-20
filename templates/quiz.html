@@ -20,7 +20,7 @@
                 <label class="label">Propositions :</label>
                 {% set ns = namespace(i=1) %}
                 {% if question.propositions|length == 0 %}
-                    <input type="texte" name="proposition">
+                    <input type="texte" name="proposition" value="{{ns.i}}">
                     
                 </label>
                 {% else %}

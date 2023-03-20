@@ -2,7 +2,6 @@ import os, json
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from form import nouvelleQuestion
-from flask_socketio import SocketIO, send
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -13,7 +12,6 @@ dictionnaireUtilisateurs = os.path.join(basedir,"static/js/dictionnaireUtiliasat
 
 app = Flask(__name__)
 app.secret_key = "any random string"
-socketio = SocketIO(app)
 
 @app.route('/')
 def index():
@@ -139,11 +137,6 @@ def nouvelleQues():
         propostions=request.form.getlist('proposition[]')
         propCorrect=request.form.getlist('prop[]')
         etiquettes=form.etiquettes.data
-        
-        #on supprime les caractères \r\n à la fin d'une étiquette
-        for i in range(len(etiquettes)):
-            etiquettes[i]=etiquettes[i][:-2]
-           
         dict = {"enonce" : enonce, "propositions" : propostions, "propCorrect" : propCorrect , "etiquettes" : etiquettes}
 #Je rajoute la nouvelle question au fichier json, il ne faut pas qu'il soit vide pour ne pas générer d'erreurs
         with open(question_file) as file:
@@ -202,9 +195,9 @@ def pageQuestions():
         for i in range(len(checked)):
             if checked[i]=="on":
                 check_questions.append(i)
+        print(checked)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)
-
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)  
 @app.route('/Home/AccesQuestion/<numQ>',methods=['POST','GET'])
 def AccesQuestion(numQ):
     if request.method=='POST':
@@ -214,9 +207,14 @@ def AccesQuestion(numQ):
             questions=data["questions"] # on recupere le dictionnaire des questions
             compteur=1
             for e in questions:        # on parcoure le dictionnaire
-                if(int(compteur)==int(numQ)): # quand le la variable incrementer egal le numero de la question on a reussi a avoir la question
+                if(int(compteur)==int(numQ)): # quand la variable incrementer egal le numero de la question on a reussi a avoir la question
                     enonce=e["enonce"]
                     proposition=e["propositions"]
+                    if len(proposition)==0: #alors c'est une reponse par texte
+                        if str(prop[0])==e["propCorrect"][0]:
+                           return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e,resultat="reponse correct")
+                        else:
+                            return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e,resultat="reponse incorrect la reponse était"+str(e["propCorrect"]))
                     reponseCorrect=[]
                     reponseAttendue=[]
                     for reponseJuste in e["propCorrect"]: #on parcour les proposition correcte
@@ -239,7 +237,6 @@ def AccesQuestion(numQ):
                 else:
                     compteur+=1#variable incrementer pour trouver la bonne question
         return "echec a acceder aux question <a href=/home>retour</a>"
-
 
 
 @app.route('/Home/pageDeQuestions/<nom_page>')

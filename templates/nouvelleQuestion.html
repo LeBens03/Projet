@@ -13,10 +13,31 @@
                     {{ form.enonce(class="input", placeholder="Saisir l'énoncé de votre question") }}
                 </div>
             </div>
+            <div id="reponseText">
+                <p>reponse a la question</p>
+                <input type="texte" name="prop[]">
+            </div>
+            <script>
+                reponsetext=1 //quand passe de 1 à 0 on supprime reponseText quand on passe de 0 à 1 on rajoute reponseText 
+                function reponsetextdel(){ // quand on click ajouter proposition on suprime la reponse text et on compte le nombre proposition ajouter
+                    if(reponsetext==1){
+                        document.getElementById("reponseText").innerHTML="<p></p>"
+                    }
+                    reponsetext-=1
+                    console.log(reponsetext)
+                }
+                function reponsetextadd(){ // quand on suprime une proposition on compte le nombre de proposition suprimer et quand il y en'a plus on rajoute la reponse text
+                    reponsetext+=1
+                    console.log(reponsetext)
+                    if(reponsetext==1){
+                        document.getElementById("reponseText").innerHTML='<p>reponse a la question</p><br><input type="texte" name="prop[]">'
+                    }
+                }
+            </script>
 
             <div class="field">
                 <div id="inputsWrapper">
-                    <p><button class="button " id="add_button" name="add_button" type="button" value="">Ajouter Proposition</button></p>
+                    <p><button class="button " id="add_button" name="add_button" type="button" value="" onclick="reponsetextdel()">Ajouter Proposition</button></p>
                 </div>
             </div>
 

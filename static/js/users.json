@@ -19,6 +19,11 @@
 			"name": "Hassan",
 			"email": "hassan.login@hotmail.fr",
 			"password": "sha256$jNoRlEug2fZC3irR$c42da395c737777a5dc5b50b70a7d8f18fa8572a2498dfd56f757f1614becd97"
+		},
+		{
+			"name": "e",
+			"email": "e@e",
+			"password": "sha256$QslxQqJXEFvElnxj$1be3230452cf115c3858df5df4f099e5af3b6d9d48d8d26b81e157ab43417a60"
 		}
 	]
 }

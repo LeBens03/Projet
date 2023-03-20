@@ -40,6 +40,175 @@
 				"Java\r\n",
 				"Algorithmique\r\n"
 			]
+		},
+		{
+			"enonce": "test",
+			"propositions": [
+				"a",
+				"b",
+				"c"
+			],
+			"etiquettes": [
+				"Java\r\n",
+				"Algebre lineaire\r\n",
+				"Resaux\r\n",
+				"Projet\r\n",
+				"CSS\r\n"
+			]
+		},
+		{
+			"enonce": "e",
+			"propositions": [],
+			"etiquettes": [
+				"Java\r\n"
+			]
+		},
+		{
+			"enonce": "ee",
+			"propositions": [
+				"ee",
+				"e",
+				"eee",
+				"eeee"
+			],
+			"propCorrect": [
+				"on"
+			],
+			"etiquettes": [
+				"Java\r\n"
+			]
+		},
+		{
+			"enonce": "a",
+			"propositions": [
+				"a",
+				"aa",
+				"aaa"
+			],
+			"propCorrect": [
+				"prop1"
+			],
+			"etiquettes": []
+		},
+		{
+			"enonce": "t",
+			"propositions": [
+				"t",
+				"r",
+				"e"
+			],
+			"propCorrect": [
+				"prop1",
+				"prop3"
+			],
+			"etiquettes": [
+				"Java\r\n"
+			]
+		},
+		{
+			"enonce": "reponse A B et E",
+			"propositions": [
+				"A",
+				"B",
+				"C",
+				"E"
+			],
+			"propCorrect": [
+				"1",
+				"2",
+				"4"
+			],
+			"etiquettes": [
+				"Java\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [],
+			"propCorrect": [],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [],
+			"propCorrect": [
+				"6"
+			],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [],
+			"propCorrect": [
+				"6"
+			],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [],
+			"propCorrect": [
+				"6"
+			],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [
+				"6"
+			],
+			"propCorrect": [],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [
+				"6"
+			],
+			"propCorrect": [],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [
+				"6"
+			],
+			"propCorrect": [],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [],
+			"propCorrect": [
+				"6"
+			],
+			"etiquettes": [
+				"Algebre lineaire\r\n"
+			]
+		},
+		{
+			"enonce": "3+3",
+			"propositions": [],
+			"propCorrect": [
+				"6"
+			],
+			"etiquettes": [
+				"Java\r\n"
+			]
 		}
 	]
 }

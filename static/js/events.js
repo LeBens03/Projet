@@ -10,7 +10,7 @@ $(document).ready(function(){
     $(add_button).click(function(e) {
         if (x<max_propositions) 
         {
-            let html = '<div class="control block">Proposition '+x+' <input type="checkbox" id="prop'+x+'" name="prop[]" value="'+x+'"> cocher si la proposition est correcte<input class="input proposition" type="text" placeholder="Ajouter proposition" name="proposition[]" id="proposition'+x+'"><button class="delete is-large" id="remove_button" name="remove_button" type="button" value=""></button></div>'
+            let html = '<div class="control block">Proposition '+x+' <input type="checkbox" id="prop'+x+'" name="prop[]" value="'+x+'"> cocher si la proposition est correcte<input class="input proposition" type="text" placeholder="Ajouter proposition" name="proposition[]" id="proposition'+x+'"><button class="delete is-large" id="remove_button" name="remove_button" type="button" value="" onclick="reponsetextadd()"></button></div>'
             $(wrapper).append(html);
             var checkbox = document.createElement("INPUT");
             var p_checkbox = document.createElement("p");
