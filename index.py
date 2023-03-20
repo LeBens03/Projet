@@ -2,6 +2,7 @@ import os, json
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from form import nouvelleQuestion
+from flask_socketio import SocketIO, send
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -12,6 +13,7 @@ dictionnaireUtilisateurs = os.path.join(basedir,"static/js/dictionnaireUtiliasat
 
 app = Flask(__name__)
 app.secret_key = "any random string"
+socketio = SocketIO(app)
 
 @app.route('/')
 def index():
@@ -137,6 +139,11 @@ def nouvelleQues():
         propostions=request.form.getlist('proposition[]')
         propCorrect=request.form.getlist('prop[]')
         etiquettes=form.etiquettes.data
+        
+        #on supprime les caractères \r\n à la fin d'une étiquette
+        for i in range(len(etiquettes)):
+            etiquettes[i]=etiquettes[i][:-2]
+           
         dict = {"enonce" : enonce, "propositions" : propostions, "propCorrect" : propCorrect , "etiquettes" : etiquettes}
 #Je rajoute la nouvelle question au fichier json, il ne faut pas qu'il soit vide pour ne pas générer d'erreurs
         with open(question_file) as file:
@@ -195,9 +202,9 @@ def pageQuestions():
         for i in range(len(checked)):
             if checked[i]=="on":
                 check_questions.append(i)
-        print(checked)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)  
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)
+
 @app.route('/Home/AccesQuestion/<numQ>',methods=['POST','GET'])
 def AccesQuestion(numQ):
     if request.method=='POST':
@@ -232,42 +239,6 @@ def AccesQuestion(numQ):
                 else:
                     compteur+=1#variable incrementer pour trouver la bonne question
         return "echec a acceder aux question <a href=/home>retour</a>"
-
-
-'''
-@app.route('/inscrireEtudiant',methods=["POST","GET"])
-def inscrireEtudiant():
-    if request.method == "POST":
-        if 'CSV' not in request.files: # verifie si le post du formulaire renvoyer un fichier
-            return redirect(url_for("index"))
-        fichierCSV=request.files["CSV"]
-        if fichierCSV.filename == '':  # verifie si un fichier avec un nom a etait selectionner
-            return render_template("index.html",message="fichier non selectionner")
-        if fichierCSV and fichier_autoriser(fichierCSV.filename):
-            filename = secure_filename(fichierCSV.filename)#fonction qui verifie si le fichier n'essaye pas de modifier un fichier system
-            fichierCSV.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))#on enregistre le fichier csv a l'emplacement du serveur
-            f = open("./"+filename,"r")
-            enregistrement = f.read()
-            f.close()
-            listeLigne = enregistrement.split("\n") #on separe les ligne
-            for etu in listeLigne:
-                etudiant = etu.split(";")          # on separe les colonne
-                dictionnaireEtudiant= {"numeroEtudiant": etudiant[0],"nomEtudiant" : etudiant[1],"prenomEtudiant" : etudiant[2], "motdepasse" : etudiant[0]}
-                if etudiant[0]!="":
-                    with open(dictionnaireUtiliasateur):
-                        datadictionnaireUtilisateurs=json.load(dictionnaireUtiliasateur) # on transforme le contenue du fichier texte en dictionnaire
-                    for Etudiant in datadictionnaireUtilisateurs["Etudiant"]:
-                        if etudiant[0] == Etudiant["numeroEtudiant"] :
-                            return "erreur "+etudiant[0]+" deja inscrit<br><a href='/'>clicker ici pour retourner a l'acceuil</a>"
-                        else:
-                            datadictionnaireUtilisateurs["Etudiant"].append(dictionnaireEtudiant)
-                    with open(dictionnaireUtiliasateur,'w'):
-                        json.dump(datadictionnaireUtilisateurs,dictionnaireUtiliasateur,indent='\t')
-            return redirect(url_for('index'))
-    else:
-        return render_template("inscrireEtudiant.html")
-'''
-
 
 
 
