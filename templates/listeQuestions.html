@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+
+
+{% block content %}
+
+<form action="" method="POST">
+<div class="field">
+    <label class="label">{{ form.etiquettes.label }}</label>
+    <div class="select is-multiple ">
+        {{ form.etiquettes(required="true") }} 
+    </div>
+</div>
+
+<div class="control is-centered">
+    <div class="buttons is-centered">
+        {{ form.submit(class="button is-link", value="Choisir", formaction="/Home/listeQuestions") }}
+    </div>
+</div>
+</form> 
+
+{% autoescape off %}
+{{balisesQuestions}}
+{% endautoescape %}
+
+{% endblock %}

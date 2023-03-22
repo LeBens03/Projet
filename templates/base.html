@@ -9,6 +9,19 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.2/css/bulma.min.css" />
     <script src="https://code.jquery.com/jquery-3.6.3.min.js"   integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU="   crossorigin="anonymous"></script>
     <script type="text/javascript" src="{{ url_for('static', filename='js/events.js')}}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+    <script>
+    socket = io();
+
+
+    socket.on("MiseAJour", function(msg) {
+        console.log(document.getElementById('checkbox_'+msg).checked)
+        if (document.getElementById('checkbox_'+msg).checked == true){
+            document.getElementById(msg).value += 1;}
+        else{
+            document.getElementById(msg).value -= 1;}             
+    });
+    </script>
 </head>
     
 <body>

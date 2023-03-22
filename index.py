@@ -2,6 +2,7 @@ import os, json
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from form import nouvelleQuestion
+from flask_socketio import SocketIO, send
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
@@ -12,6 +13,7 @@ dictionnaireUtilisateurs = os.path.join(basedir,"static/js/dictionnaireUtiliasat
 
 app = Flask(__name__)
 app.secret_key = "any random string"
+socketio = SocketIO(app)
 
 @app.route('/')
 def index():
@@ -137,6 +139,11 @@ def nouvelleQues():
         propostions=request.form.getlist('proposition[]')
         propCorrect=request.form.getlist('prop[]')
         etiquettes=form.etiquettes.data
+        
+        #on supprime les caractères \r\n à la fin d'une étiquette
+        for i in range(len(etiquettes)):
+            etiquettes[i]=etiquettes[i][:-2]
+           
         dict = {"enonce" : enonce, "propositions" : propostions, "propCorrect" : propCorrect , "etiquettes" : etiquettes}
 #Je rajoute la nouvelle question au fichier json, il ne faut pas qu'il soit vide pour ne pas générer d'erreurs
         with open(question_file) as file:
@@ -195,9 +202,9 @@ def pageQuestions():
         for i in range(len(checked)):
             if checked[i]=="on":
                 check_questions.append(i)
-        print(checked)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)  
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)
+
 @app.route('/Home/AccesQuestion/<numQ>',methods=['POST','GET'])
 def AccesQuestion(numQ):
     if request.method=='POST':
@@ -233,76 +240,58 @@ def AccesQuestion(numQ):
                     compteur+=1#variable incrementer pour trouver la bonne question
         return "echec a acceder aux question <a href=/home>retour</a>"
 
-
-@app.route('/Home/pageDeQuestions')
-def pageQuestions():
-#Je crée une page avec tout les questions pour en choisir et génerer une page de questions  
-    form = nouvelleQuestion()
-    form.etiquettes.choices=getEtiquettes()
+@app.route('/AccesLiveEtudiant/<numQuestion>')
+def AccesLiveEtudiant(numQuestion):
     with open(question_file) as file:
         data=json.load(file)
-        questions=data["questions"]
-        
-    nb_Questions=len(questions)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions,)  
+    question=data["questions"][int(numQuestion)-1]
 
-@app.route('/Home/pageDeQuestions/<nom_page>', methods=['POST', 'GET'])
-def genererPage(nom_page):
-    if request.method == 'POST':
-        check_questions = []
-        titre = request.form["titre"]
-        checked = request.form.getlist("check")
-
-        for i in range(len(checked)):
-
-            with open(question_file) as file:
-                data=json.load(file)
-                questions=data["questions"]
-        
-            check_questions.append(questions[int(checked[i])-1])
-
-        nbQuestions = len(check_questions)
-
-        return render_template("getPage.html", titre=titre, nbQuestions=nbQuestions, questions=check_questions)
-
-@app.route('/Home/compteEtudiants')
-def compteEtudiants():
-    return render_template("compteEtudiant.html")
-
-@app.route('/Home/compteEtudiants/creer', methods=["POST","GET"])
-def inscrireEtudiant():
-
-    if request.method == "POST":
-        if 'file' not in request.files: # verifie si le post du formulaire renvoyer un fichier
-            return redirect(url_for("home"))
-        
-        fichierCSV=request.files["file"]
-        
-
-        #if fichierCSV.filename == '':  # verifie si un fichier avec un nom a etait selectionner
-        #    return render_template("home.html",message="fichier non selectionner")
-
-        filename = secure_filename(fichierCSV.filename)#fonction qui verifie si le fichier n'essaye pas de modifier un fichier system
-
-        with open(filename,"r") as file:
-
-            csvreader = csv.reader(file)
-
-            for row in csvreader: 
-                dict = {"Nom": row[0], "Prenom": row[1], "Numero Etudiant": row[2]}
-
-                with open(etudiants_file) as f:
-                      data=json.load(f)
-                      existe=False
-                      for etudiant in data["Etudiants"]:
-                        if row[2] == etudiant["Numero Etudiant"]:
-                            existe=True
-                      if existe==False:
-                        data["Etudiants"].append(dict)
-                      with open(etudiants_file, 'w') as f:
-                        json.dump(data,f,indent='\t')
-  
-        return redirect(url_for('home')))
+    htmlAAjouter=""
+    i=1
+    for rep in question['propositions'] :
+        htmlAAjouter += """<input id='checkbox_barre""" + str(i) + """' type='checkbox' onchange="socket.emit('maj','barre""" + str(i) + """')">""" + rep + """<br><progress id='barre"""+ str(i) +"""' max="0" value="0"></progress>"""
+        i += 1
     
-app.run(host='0.0.0.0', port=8887, debug=True)
+    
+    return render_template("diffusion.html",code=htmlAAjouter,question=question)
+
+@app.route('/Home/listeQuestions', methods=['POST', 'GET'])
+def listeQuestions():
+
+    formulaire = nouvelleQuestion()
+    formulaire.etiquettes.choices=getEtiquettes()
+
+    listeTags=[]
+    with open(etiquette_file) as tags:
+
+        if request.method == "GET":
+            for ligne in tags.readlines():
+                listeTags.append(ligne[:-1])
+        else:
+            eti=request.form.getlist("etiquettes")
+            for t in eti:
+                listeTags.append(t[:-2])
+
+
+
+    with open(question_file) as file:
+        data=json.load(file)
+
+    codeQuestionHtml = ""
+    for i in range(len(data["questions"])):
+        for j in (data["questions"][i]["etiquettes"]):
+            if j in listeTags:
+                codeQuestionHtml = codeQuestionHtml + "<a href='/Home/Question/" + str(i+1) + "'>Question" + str(i+1) + "</a><br>"
+                break
+
+    return render_template("listeQuestions.html", balisesQuestions=codeQuestionHtml, form=formulaire)
+
+@socketio.on('maj')
+def handle_maj(msg):
+    socketio.emit("MiseAJour",msg)
+
+
+
+if __name__=="__main__":
+    socketio.run(app)

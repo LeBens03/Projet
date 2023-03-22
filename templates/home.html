@@ -10,21 +10,10 @@
 <br><br><br>
 <div class="dropdown is-hoverable">
   <div class="dropdown-trigger">
-    <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-      <span>Vos questions précedemment crées</span>
-      <span class="icon is-small">
-        <i class="fas fa-angle-down" aria-hidden="true"></i>
-      </span>
-    </button>
-  </div>
-  <div class="dropdown-menu" id="dropdown-menu" role="menu">
-    <div class="dropdown-content">
-      {%for i in range(1, nb_Questions+1)%}
-      <a href="/Home/Question/{{i}}" class="dropdown-item">
-        Question {{ i }}
-      </a>
-      {% endfor %}
-    </div>
+    
+      <div class="field">
+        <a href="/Home/listeQuestions" class="button">Acceder à l'ensemble de vos questions</a>
+      </div>
   </div>
 </div><br><br><br><br><br>
 <div class="field">
@@ -48,7 +37,6 @@
       </div>
     </div>
   </div>
-  <a href="/Home/Questions" class="button">acceder une question </a>
 </div>
 
 {% endblock %}
