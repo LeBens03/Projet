@@ -1,26 +1,19 @@
-import os, json, csv
+import os, json
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
-from werkzeug.utils import secure_filename
 from form import nouvelleQuestion
-from random import choice
 from flask_socketio import SocketIO, send
-
-
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 user_file = os.path.join(basedir, 'static/js/users.json')
 etiquette_file = os.path.join(basedir, 'static/txt/etiquettes.txt')
 question_file = os.path.join(basedir, 'static/js/questions.json')
-etudiants_file = os.path.join(basedir, 'static/js/etudiants.json')
-questionDiffusée_file = os.path.join(basedir, 'static/js/questionDiffusée.json')
-
+dictionnaireUtilisateurs = os.path.join(basedir,"static/js/dictionnaireUtiliasateur.json") 
 
 app = Flask(__name__)
 app.secret_key = "any random string"
 socketio = SocketIO(app)
-
 
 @app.route('/')
 def index():
@@ -60,42 +53,39 @@ def signup():
     else:
         return render_template("signup.html")
 
-@app.route('/HomeEtudiant')
-def homeEtudiant():
-    return render_template('etudiant.html')
-
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
     if request.method=='POST':
         
         email = request.form.get('email')
-        print(email[0])
         password = request.form.get('password')
         remember = True if request.form.get('remember') else False
 
-        if email[0]=='e':
-            with open(etudiants_file) as file : 
-                data = json.load(file)
-                for etudiant in data["Etudiants"]:
-                    if etudiant["Numero Etudiant"]==email and  etudiant["Nom"]+etudiant["Prenom"]==password:
-                        return redirect(url_for('homeEtudiant'))
+#Je recupère le nom de l'utilisateur pour initier la session
+
+        with open(user_file) as file:
+            data = json.load(file)
+            for user in data["users"]:
+                if user["email"]==email:
+                    session['username']=user["name"]
 
 #Je vérifie si l'email et le mot de passe saisis existe dans users.json
 # Sinon j'envoie un message à afficher
 
-        else:
-            with open (user_file) as file:
-                data=json.load(file)
-                for user in data["users"]:
-                    if user["email"]==email and check_password_hash(user["password"], password):
-                        session['username']=user["name"]
-                        return redirect(url_for('home'))
+        with open (user_file) as file:
+            data=json.load(file)
+            for user in data["users"]:
+                if user["email"]==email and check_password_hash(user["password"], password):
+                    return redirect(url_for('home'))
         
-    flash('Please check your login details and try again.')
-    return  render_template("login.html")
+        flash('Please check your login details and try again.')
+        return  render_template("login.html")
 
         
+
+    else :
+        return render_template("login.html")
         
 @app.route('/Home')
 def home():
@@ -147,10 +137,14 @@ def nouvelleQues():
     if request.method=='POST':
         enonce=request.form['enonce']
         propostions=request.form.getlist('proposition[]')
+        propCorrect=request.form.getlist('prop[]')
         etiquettes=form.etiquettes.data
-        alphabet = [ chr(i) for i in range(48,123) if i <= 57 or (i >= 65 and i <=90) or (i >= 97) ]
-        identifiant = generate_id_formated(alphabet)
-        dict = {"enonce" : enonce, "propositions" : propostions, "etiquettes" : etiquettes, "identifiant" : identifiant}
+        
+        #on supprime les caractères \r\n à la fin d'une étiquette
+        for i in range(len(etiquettes)):
+            etiquettes[i]=etiquettes[i][:-2]
+           
+        dict = {"enonce" : enonce, "propositions" : propostions, "propCorrect" : propCorrect , "etiquettes" : etiquettes}
 #Je rajoute la nouvelle question au fichier json, il ne faut pas qu'il soit vide pour ne pas générer d'erreurs
         with open(question_file) as file:
             data = json.load(file)
@@ -190,7 +184,7 @@ def supprimerQuestion(numQuestion):
     else :
         return redirect(url_for('home'))
 
-
+check_questions = []
 
 @app.route('/Home/pageDeQuestions')
 def pageQuestions():
@@ -203,124 +197,95 @@ def pageQuestions():
         
     nb_Questions=len(questions)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)  
-
-@app.route('/Home/pageDeQuestions/<nom_page>', methods=['POST', 'GET'])
-def genererPage(nom_page):
     if request.method == 'POST':
-        check_questions = []
-        titre = request.form["titre"]
         checked = request.form.getlist("check")
-
         for i in range(len(checked)):
+            if checked[i]=="on":
+                check_questions.append(i)
 
-            with open(question_file) as file:
-                data=json.load(file)
-                questions=data["questions"]
-        
-            check_questions.append(questions[int(checked[i])-1])
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)
 
-        nbQuestions = len(check_questions)
-
-        return render_template("getPage.html", titre=titre, nbQuestions=nbQuestions, questions=check_questions)
-
-@app.route('/Home/compteEtudiants')
-def compteEtudiants():
-    return render_template("compteEtudiant.html")
-
-@app.route('/Home/compteEtudiants/creer', methods=["POST","GET"])
-def inscrireEtudiant():
-
-    if request.method == "POST":
-        if 'file' not in request.files: # verifie si le post du formulaire renvoyer un fichier
-            return redirect(url_for("home"))
-        
-        fichierCSV=request.files["file"]
-        
-
-        #if fichierCSV.filename == '':  # verifie si un fichier avec un nom a etait selectionner
-        #    return render_template("home.html",message="fichier non selectionner")
-
-        filename = secure_filename(fichierCSV.filename)#fonction qui verifie si le fichier n'essaye pas de modifier un fichier system
-
-        with open(filename,"r") as file:
-
-            csvreader = csv.reader(file)
-
-            for row in csvreader: 
-                dict = {"Nom": row[0], "Prenom": row[1], "Numero Etudiant": row[2]}
-
-                with open(etudiants_file) as f:
-                      data=json.load(f)
-                      existe=False
-                      for etudiant in data["Etudiants"]:
-                        if row[2] == etudiant["Numero Etudiant"]:
-                            existe=True
-                      if existe==False:
-                        data["Etudiants"].append(dict)
-                      with open(etudiants_file, 'w') as f:
-                        json.dump(data,f,indent='\t')
-  
-        return redirect(url_for('home'))    
-
-# fonction de génération
-def generate_id(n, alphabet):
-    id = ''
-    for i in range(n):
-        id += choice( alphabet )
-        
-    return id
-
-# fonction génération id formaté
-def generate_id_formated(alphabet):
-    id = ''
-    for i in range(2):
-        for j in range(5):
-            id += choice( alphabet )
-    return id
- 
-@app.route('/Home/Question/DiffuserQuestion<numQuestion>', methods=['POST', 'GET'])
-def diffuserquestion(numQuestion):
+@app.route('/Home/AccesQuestion/<numQ>',methods=['POST','GET'])
+def AccesQuestion(numQ):
     if request.method=='POST':
-
-        questions = []
-        with open(questionDiffusée_file) as file:
-            questions=json.load(file)
-            
-
-        with open(question_file) as file:
-            databis=json.load(file)
-            dict = databis["questions"][int(numQuestion)-1]
-            
-        questions.append(dict)
-
-        with open(questionDiffusée_file, 'w') as file:
-            json.dump(questions,file,indent='\t')
-
-
-        return render_template("getQuestionDiffusée.html", question = dict, numQuestion= str(numQuestion))
-
-                
-
-    return redirect(url_for('home'))
-
-        
-@app.route('/supprimerQuestionDiffusée/<idQuestion>', methods=['POST', 'GET'])
-def supprimerQuestionDiffusée(idQuestion):
-#Je supprime la question diffusée dont le numéro est passé dans l'url
-    if request.method=='POST':
-        with open(questionDiffusée_file) as file:
+        prop=request.form.getlist("proposition") # on recupere les reponse de l'etudiant
+        with open("./static/js/questions.json") as file:
             data=json.load(file)
-            del data[len(data)-1]
+            questions=data["questions"] # on recupere le dictionnaire des questions
+            compteur=1
+            for e in questions:        # on parcoure le dictionnaire
+                if(int(compteur)==int(numQ)): # quand le la variable incrementer egal le numero de la question on a reussi a avoir la question
+                    enonce=e["enonce"]
+                    proposition=e["propositions"]
+                    reponseCorrect=[]
+                    reponseAttendue=[]
+                    for reponseJuste in e["propCorrect"]: #on parcour les proposition correcte
+                        if reponseJuste in prop : # si les reponse etudiant on des reponse correct on les ajoute a reponseCorrect
+                            reponseCorrect.append(e["propositions"][int(reponseJuste)-1])
+                        else:
+                            reponseAttendue.append(e["propositions"][int(reponseJuste)-1]) # sinon on les ajoute aux reponse attendue
+                    return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e,resultat=("reponse correct"+str(reponseCorrect)+" le reste des reponse attendue"+str(reponseAttendue)))
+                else:
+                    compteur+=1 #variable incrementer pour trouver la bonne question
+        return "echec a acceder aux question <a href=/home>retour</a>"#si on trouve pas la question
+    else:
+        with open("./static/js/questions.json") as file:
+            data=json.load(file) # on recupere le dictionnaire des questions
+            questions=data["questions"]
+            compteur=1
+            for e in questions: #on parcoure le dictionnaire
+                if(int(compteur)==int(numQ)): # quand le la variable incrementer egal le numero de la question on a reussi a avoir la question
+                    return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e)
+                else:
+                    compteur+=1#variable incrementer pour trouver la bonne question
+        return "echec a acceder aux question <a href=/home>retour</a>"
 
-        with open(questionDiffusée_file, 'w') as file:
-            json.dump(data, file, indent='\t')
+@app.route('/AccesLiveEtudiant/<numQuestion>')
+def AccesLiveEtudiant(numQuestion):
+    with open(question_file) as file:
+        data=json.load(file)
 
-        return redirect(url_for('home'))
+    question=data["questions"][int(numQuestion)-1]
 
-    else :
-        return redirect(url_for('home'))
-          
+    htmlAAjouter=""
+    i=1
+    for rep in question['propositions'] :
+        htmlAAjouter += """<input id='checkbox_barre""" + str(i) + """' type='checkbox' onchange="socket.emit('maj','barre""" + str(i) + """')">""" + rep + """<br><progress id='barre"""+ str(i) +"""' max="0" value="0"></progress>"""
+        i += 1
+    
+    
+    return render_template("diffusion.html",code=htmlAAjouter,question=question)
+
+@app.route('/Home/listeQuestions', methods=['POST', 'GET'])
+def listeQuestions():
+
+    formulaire = nouvelleQuestion()
+    formulaire.etiquettes.choices=getEtiquettes()
+
+    listeTags=[]
+    with open(etiquette_file) as tags:
+
+        if request.method == "GET":
+            for ligne in tags.readlines():
+                listeTags.append(ligne[:-1])
+        else:
+            eti=request.form.getlist("etiquettes")
+            for t in eti:
+                listeTags.append(t[:-2])
+
+
+
+    with open(question_file) as file:
+        data=json.load(file)
+
+    codeQuestionHtml = ""
+    for i in range(len(data["questions"])):
+        for j in (data["questions"][i]["etiquettes"]):
+            if j in listeTags:
+                codeQuestionHtml = codeQuestionHtml + "<a href='/Home/Question/" + str(i+1) + "'>Question" + str(i+1) + "</a><br>"
+                break
+
+    return render_template("listeQuestions.html", balisesQuestions=codeQuestionHtml, form=formulaire)
 
 @socketio.on('maj')
 def handle_maj(msg):
@@ -329,8 +294,4 @@ def handle_maj(msg):
 
 
 if __name__=="__main__":
-    socketio.run(app)      
-
-
-    
-#app.run(host='0.0.0.0', port=81, debug=True)
+    socketio.run(app)
