@@ -1,0 +1,72 @@
+
+{% extends "base.html" %}
+
+{% block content %}
+
+{% for Lcopie in Lcontrole %}
+{% set ns = namespace(cpt=0)%}
+<div class="box">
+{% autoescape off %}
+{{identification}}
+{% endautoescape %}
+{% for copie in Lcopie %}
+    <div>
+        <div height="300px">
+            <h5>énoncé</h5> 
+            <p>{{copie.enonce}}</p>
+
+            {% set ns.cpt=ns.cpt+((copie.enonce|length)//88) %}
+        </div>
+        <div>
+            
+            <p>reponse :
+                    {% set ns = namespace(i=1) %}
+                    {% if copie.propositions|length == 0 %}
+                        <!--<input type="texte" name="proposition" > -->
+                    {% else %}
+                    {% for proposition in copie.propositions %}
+                        <input type="checkbox" name="proposition" value="{{ns.i}}">
+                        {{proposition}}
+                    {%- set ns.i = ns.i+1 %}
+                    {% endfor %}
+                    {% endif %}
+        </div>
+
+    </div>
+
+    <br>
+    
+{% endfor %}
+
+
+{% set ns = namespace(j=34-(Lcopie|length)*4-ns.cpt-compteur) %}
+{% if ns.j>=0 %}
+    {% for cpt in range(ns.j) %}
+<br>
+{% endfor %}
+{% else %}
+    {% set ns = namespace(k=41+ns.j)%}
+    {% if ns.k >=0 %}
+    {% for cpt in range(ns.k) %}
+    <br>
+    {% endfor %}
+    {% else %}
+    {% set ns = namespace(l=41+ns.k) %}
+    {% for cpt in range(ns.l) %}
+    <br>
+    {% endfor %}
+    {% endif %}
+{% endif %}
+
+</div>
+<br>
+<br>
+<br>
+<br>
+<br>
+<br>
+
+
+{% endfor %}
+
+{% endblock %}

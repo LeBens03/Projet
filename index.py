@@ -1,17 +1,36 @@
-import os, json
+import os, json, csv
 from flask import Flask, redirect, render_template, request, url_for, session, flash
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from form import nouvelleQuestion
+from random import choice
+import random
+import math
+import operator
+from flask_socketio import SocketIO, send
+
+from unidecode import unidecode
+import base64
+import io
+from wordcloud import WordCloud
+
+
 
 
 basedir = os.path.abspath(os.path.dirname(__file__))
 user_file = os.path.join(basedir, 'static/js/users.json')
 etiquette_file = os.path.join(basedir, 'static/txt/etiquettes.txt')
 question_file = os.path.join(basedir, 'static/js/questions.json')
-dictionnaireUtilisateurs = os.path.join(basedir,"static/js/dictionnaireUtiliasateur.json") 
+etudiants_file = os.path.join(basedir, 'static/js/etudiants.json')
+questionDiffusée_file = os.path.join(basedir, 'static/js/questionDiffusée.json')
+
+
+
 
 app = Flask(__name__)
 app.secret_key = "any random string"
+socketio = SocketIO(app)
+
 
 @app.route('/')
 def index():
@@ -51,6 +70,10 @@ def signup():
     else:
         return render_template("signup.html")
 
+@app.route('/HomeEtudiant')
+def homeEtudiant():
+    return render_template('etudiant.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
 
@@ -60,30 +83,28 @@ def login():
         password = request.form.get('password')
         remember = True if request.form.get('remember') else False
 
-#Je recupère le nom de l'utilisateur pour initier la session
-
-        with open(user_file) as file:
-            data = json.load(file)
-            for user in data["users"]:
-                if user["email"]==email:
-                    session['username']=user["name"]
+        if email[0]=='e':
+            with open(etudiants_file) as file : 
+                data = json.load(file)
+                for etudiant in data["Etudiants"]:
+                    if etudiant["Numero Etudiant"]==email and  etudiant["Nom"]+etudiant["Prenom"]==password:
+                        return redirect(url_for('homeEtudiant'))
 
 #Je vérifie si l'email et le mot de passe saisis existe dans users.json
 # Sinon j'envoie un message à afficher
 
-        with open (user_file) as file:
-            data=json.load(file)
-            for user in data["users"]:
-                if user["email"]==email and check_password_hash(user["password"], password):
-                    return redirect(url_for('home'))
+        else:
+            with open (user_file) as file:
+                data=json.load(file)
+                for user in data["users"]:
+                    if user["email"]==email and check_password_hash(user["password"], password):
+                        session['username']=user["name"]
+                        return redirect(url_for('home'))
         
-        flash('Please check your login details and try again.')
-        return  render_template("login.html")
+    flash('Please check your login details and try again.')
+    return  render_template("login.html")
 
         
-
-    else :
-        return render_template("login.html")
         
 @app.route('/Home')
 def home():
@@ -135,9 +156,16 @@ def nouvelleQues():
     if request.method=='POST':
         enonce=request.form['enonce']
         propostions=request.form.getlist('proposition[]')
-        propCorrect=request.form.getlist('prop[]')
         etiquettes=form.etiquettes.data
-        dict = {"enonce" : enonce, "propositions" : propostions, "propCorrect" : propCorrect , "etiquettes" : etiquettes}
+        alphabet = [ chr(i) for i in range(48,123) if i <= 57 or (i >= 65 and i <=90) or (i >= 97) ]
+        identifiant = generate_id_formated(alphabet)
+
+        #on supprime les caractères \r\n à la fin d'une étiquette
+        for i in range(len(etiquettes)):
+            etiquettes[i]=etiquettes[i][:-2]
+
+
+        dict = {"enonce" : enonce, "propositions" : propostions, "etiquettes" : etiquettes, "identifiant" : identifiant}
 #Je rajoute la nouvelle question au fichier json, il ne faut pas qu'il soit vide pour ne pas générer d'erreurs
         with open(question_file) as file:
             data = json.load(file)
@@ -177,75 +205,271 @@ def supprimerQuestion(numQuestion):
     else :
         return redirect(url_for('home'))
 
-check_questions = []
 
-@app.route('/Home/pageDeQuestions')
+
+@app.route('/Home/pageDeQuestions', methods=['POST', 'GET'])
 def pageQuestions():
 #Je crée une page avec tout les questions pour en choisir et génerer une page de questions  
     form = nouvelleQuestion()
     form.etiquettes.choices=getEtiquettes()
+
+
+    listeTags=[]
+    with open(etiquette_file) as tags:
+
+        if request.method == "GET":
+            for ligne in tags.readlines():
+                listeTags.append(ligne[:-1])
+        else:
+            eti=request.form.getlist("etiquettes")
+            for t in eti:
+                listeTags.append(t[:-2])
+
+                
     with open(question_file) as file:
         data=json.load(file)
-        questions=data["questions"]
+    
+    questions=[]
+
+    for i in range(len(data["questions"])):
+        for j in (data["questions"][i]["etiquettes"]):
+            if j in listeTags:
+                questions.append(data["questions"][i])
+                break
         
     nb_Questions=len(questions)
 
-    if request.method == 'POST':
-        checked = request.form.getlist("check")
-        for i in range(len(checked)):
-            if checked[i]=="on":
-                check_questions.append(i)
-        print(checked)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions)  
-@app.route('/Home/AccesQuestion/<numQ>',methods=['POST','GET'])
-def AccesQuestion(numQ):
+    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions, form=form)
+
+
+
+
+
+
+
+dictIdProp = {}
+idsNuageMot = {}
+
+
+
+@app.route('/Home/nuageDeMot', methods=['POST', 'GET'])
+def nuageDeMot():
+
+    if request.method == 'GET':
+        code = """Choisissez l'énoncé de votre question :<br><form method='POST'><textarea name='enonce'></textarea><br><button type='submit' formaction='/Home/nuageDeMot'>Proposer question en direct</button></form>"""
+        return render_template('nuageDeMot.html',code=code)
+
+    else :
+        enonce=request.form['enonce']
+        ident = generate_id_formated([ chr(i) for i in range(48,123) if i <= 57 or (i >= 65 and i <=90) or (i >= 97) ])
+        dictIdProp[ident]={}
+        idsNuageMot[ident] = enonce
+        code = """<form method="POST">L'identifiant nécessaire aux élèves pour accéder à votre question est : <input type="hidden" name='id' value='""" + ident + """'>""" + ident + "</input><br><br><br> Les étudiants sont en train de répondre à la question :<br>" + enonce + "<br><button type='submit' formaction='/nuage'>Générer Nuage</button></form>"
+        return render_template('nuageDeMot.html',code=code)
+
+@app.route('/nuage', methods=['POST', 'GET'])
+def nuage():
     if request.method=='POST':
-        prop=request.form.getlist("proposition") # on recupere les reponse de l'etudiant
-        with open("./static/js/questions.json") as file:
-            data=json.load(file)
-            questions=data["questions"] # on recupere le dictionnaire des questions
-            compteur=1
-            for e in questions:        # on parcoure le dictionnaire
-                if(int(compteur)==int(numQ)): # quand le la variable incrementer egal le numero de la question on a reussi a avoir la question
-                    enonce=e["enonce"]
-                    proposition=e["propositions"]
-                    reponseCorrect=[]
-                    reponseAttendue=[]
-                    for reponseJuste in e["propCorrect"]: #on parcour les proposition correcte
-                        if reponseJuste in prop : # si les reponse etudiant on des reponse correct on les ajoute a reponseCorrect
-                            reponseCorrect.append(e["propositions"][int(reponseJuste)-1])
-                        else:
-                            reponseAttendue.append(e["propositions"][int(reponseJuste)-1]) # sinon on les ajoute aux reponse attendue
-                    return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e,resultat=("reponse correct"+str(reponseCorrect)+" le reste des reponse attendue"+str(reponseAttendue)))
-                else:
-                    compteur+=1 #variable incrementer pour trouver la bonne question
-        return "echec a acceder aux question <a href=/home>retour</a>"#si on trouve pas la question
-    else:
-        with open("./static/js/questions.json") as file:
-            data=json.load(file) # on recupere le dictionnaire des questions
-            questions=data["questions"]
-            compteur=1
-            for e in questions: #on parcoure le dictionnaire
-                if(int(compteur)==int(numQ)): # quand le la variable incrementer egal le numero de la question on a reussi a avoir la question
-                    return render_template("AccesQuestion.html", numQuestion=str(numQ), question=e)
-                else:
-                    compteur+=1#variable incrementer pour trouver la bonne question
-        return "echec a acceder aux question <a href=/home>retour</a>"
+        texte=""
+        identifiant=request.form['id']
+        for prop in dictIdProp[identifiant]:
+            for i in range(dictIdProp[identifiant][prop]):
+                texte += prop + " "
+
+    wc = WordCloud(background_color='#00d1b2').generate(texte)
+    wcImage=wc.to_image()
+    img = io.BytesIO()
+    wcImage.save(img, format='PNG')
+    imgword='data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
+
+    return render_template('nuage.html', img=imgword)
 
 
-@app.route('/Home/pageDeQuestions')
-def pageQuestions():
-#Je crée une page avec tout les questions pour en choisir et génerer une page de questions  
-    form = nouvelleQuestion()
-    form.etiquettes.choices=getEtiquettes()
+
+
+@app.route('/Home/nuageDeMotEtudiant', methods=['POST', 'GET'])
+def nuageDeMotEtudiant():
+    if request.method == 'GET':
+        return "{% extends 'base.html' %}Veuillez rentrer le code qu'un enseignant vous aura transmis<br><br><form method='POST'><input type='text' name='id' ><button type='submit' formaction='/Home/nuageDeMotEtudiant'>Envoyer</button>"
+    else :
+        ident=request.form['id']
+        if ident in idsNuageMot:
+            code = idsNuageMot[ident] + "<br><br><input id='reponse' type='text'><br><br>" + """<button onclick="socket.emit('envoieInfo',recupReponse(), '""" + ident + """')">Envoyer</button>"""
+            code += "<script>function recupReponse() { return document.getElementById('reponse').value;}</script>"
+            return render_template('nuageDeMot.html', code=code)
+        else :
+            return "Identifiant incorrect"
+        
+
+listePrefixe=['a','bi','cis','co','di','dys','en','em','epi','ex','geo','in','im','il','ir','iso','mal']
+
+@socketio.on('envoieInfo')
+def handle_info(info,identifiant):
+
+    propDejaExistant=False
+    prefixeDifferent=False
+    info=info.lower()
+    info=unidecode(info)
+
+    for proposition in dictIdProp[identifiant]:
+        proposition=proposition.lower()
+        proposition=unidecode(proposition)
+
+        if len(info)<= 3:
+            if info == proposition :
+                propDejaExistant=True
+                dictIdProp[identifiant][info] += 1
+
+        for prefixe in listePrefixe :
+            if (((proposition.startswith(prefixe)) and (not info.startswith(prefixe)))) or (((not proposition.startswith(prefixe)) and (info.startswith(prefixe)))):
+                prefixeDifferent=True
+
+        if not prefixeDifferent :
+            if dist(info, len(info), proposition, len(proposition)) <= 3:
+                propDejaExistant=True
+                dictIdProp[identifiant][proposition] += 1
+
+    if not propDejaExistant:
+        dictIdProp[identifiant][info] = 1
+    print(dictIdProp)
+
+
+
+def dist(X, m, Y, n):
+ 
+    if m == 0:
+        return n
+ 
+    if n == 0:
+        return m
+ 
+    cost = 0 if (X[m - 1] == Y[n - 1]) else 1
+ 
+    return min(dist(X, m - 1, Y, n) + 1,
+            dist(X, m, Y, n - 1) + 1,
+            dist(X, m - 1, Y, n - 1) + cost)
+ 
+
+
+@app.route('/Home/genererControle', methods=['POST', 'GET'])
+def pageGenerationControle():
+    if request.method=='POST':
+        dictionnaireEtiquettes={}
+        DE={}
+        identification=""
+
+        if request.form['typeControle'] == 'anonymat':
+            compteurA=13
+            identification="Veuillez inscrire votre numéro étudiant de manière à ce qu'il n'y ai qu'une seule case cochée par colonne<br><br>"
+            for i in range(10):
+                identification += str(i)
+                for j in range(6):
+                    identification += ' <input type="checkbox">'
+                identification += '<br>'
+
+
+        elif request.form['typeControle'] == 'etudiant':
+            compteurA=4
+            identification="Veuillez renseigner les informations suivantes :<br><br>Nom :<br>Prénom :<br>Numéro étudiant :"
+
+        with open(etiquette_file) as tags:
+
+            comptePossibilites=1
+            with open(question_file) as fileQ:
+                toutesQuestions=json.load(fileQ)['questions']
+
+
+            for etiquetteActuelle in (tags.readlines()):
+                listeBufferEti=[]
+                
+                for ex in toutesQuestions:
+                    if (etiquetteActuelle[:-1]) in ex['etiquettes']:
+                        
+                        listeBufferEti.append(ex)
+                comptePossibilites = comptePossibilites * math.comb(len(listeBufferEti),int(request.form.getlist((etiquetteActuelle[:-1]))[1]))
+                print(comptePossibilites,math.comb(len(listeBufferEti),int(request.form.getlist((etiquetteActuelle[:-1]))[1])))
+                for truc in listeBufferEti:
+                    toutesQuestions.remove(truc)
+
+            if comptePossibilites < int(request.form['nbCopie']):
+
+                return "Vous avez demandé trop de questions pour faire tant de copies différentes"
+
+
+        
+
+        nbDeCopie=request.form["nbCopie"]
+        Lcontrole=[]
+        compteCopie=0
+
+        while compteCopie!=int(nbDeCopie):
+            nbQ=0
+            while nbQ!=int(request.form["nbQuestion"]):
+                nbQ=0
+                with open(etiquette_file) as tags:
+                    for ligne in (tags.readlines()):
+                        DE[ligne[:-1]]=request.form.getlist(ligne[:-1])
+
+                        NombreAlea=random.randint(int(DE[ligne[:-1]][0]),int(DE[ligne[:-1]][1]))
+                        dictionnaireEtiquettes[ligne[:-1]]=NombreAlea
+                        nbQ+=NombreAlea
+
+
+            Lcopie=[]
+            for key in dictionnaireEtiquettes:
+                listeQuestEtiq=[]
+
+                
+                with open(question_file) as file:
+                    data=json.load(file)
+                    for question in data["questions"]:
+                        for etiq in question["etiquettes"]:
+                            if etiq==key:
+                                
+                                listeQuestEtiq.append(question)
+                                
+                compteur=0
+                while compteur<int(dictionnaireEtiquettes[key]):
+                    listeAjout=listeQuestEtiq[random.randint(0,len(listeQuestEtiq)-1)]
+                    Lcopie.append(listeAjout)
+                    listeQuestEtiq.remove(listeAjout)
+                    data["questions"].remove(listeAjout)
+                    compteur+=1
+            if Lcopie not in Lcontrole:
+                melange=request.form["typequestion"]
+
+                if melange=="alea":
+                    random.shuffle(Lcopie)
+                
+                Lcontrole.append(Lcopie)
+                compteCopie+=1
+
+          
+        return render_template("afficherControle.html",Lcontrole=Lcontrole,identification=identification,compteur=compteurA)
+
     with open(question_file) as file:
         data=json.load(file)
-        questions=data["questions"]
-        
-    nb_Questions=len(questions)
 
-    return render_template("pageQuestions.html", questions=questions, nb_Questions=nb_Questions,)  
+
+    questionParTag=''
+
+    with open(etiquette_file) as tags:
+        for ligne in (tags.readlines()):
+
+            compteurQuestionEtiquette=0
+            for e in data['questions']:
+                if ligne[:-1] in e['etiquettes']:
+                    compteurQuestionEtiquette +=1
+            if(compteurQuestionEtiquette>0):
+                questionParTag += ligne + """ entre <input type='number' width='30' name='""" + ligne[:-1] + """' value='0' max='""" + str(compteurQuestionEtiquette) + """' min='0'> et <input type='number' name='""" + ligne[:-1] + """' value='0' max='""" + str(compteurQuestionEtiquette) + """' min='0'> maximum = """ + str(compteurQuestionEtiquette) + """<br><br>"""
+            else:
+                questionParTag += """<input type='hidden' name='""" + ligne[:-1] + """' value='0' max='0' min='0'>"""+"""<input type='hidden' name='""" + ligne[:-1] + """' value='0' max='0' min='0'>"""
+
+    return render_template("pageControle.html",questionParTag=questionParTag)
+
+
+
 
 @app.route('/Home/pageDeQuestions/<nom_page>', methods=['POST', 'GET'])
 def genererPage(nom_page):
@@ -265,6 +489,13 @@ def genererPage(nom_page):
         nbQuestions = len(check_questions)
 
         return render_template("getPage.html", titre=titre, nbQuestions=nbQuestions, questions=check_questions)
+
+
+
+
+
+
+#Boizux Jatigt
 
 @app.route('/Home/compteEtudiants')
 def compteEtudiants():
@@ -303,6 +534,111 @@ def inscrireEtudiant():
                       with open(etudiants_file, 'w') as f:
                         json.dump(data,f,indent='\t')
   
-        return redirect(url_for('home')))
+        return redirect(url_for('home'))    
+
+# fonction de génération
+def generate_id(n, alphabet):
+    id = ''
+    for i in range(n):
+        id += choice( alphabet )
+        
+    return id
+
+# fonction génération id formaté
+def generate_id_formated(alphabet):
+    id = ''
+    for i in range(2):
+        for j in range(5):
+            id += choice( alphabet )
+    return id
+ 
+@app.route('/Home/Question/DiffuserQuestion<numQuestion>', methods=['POST', 'GET'])
+def diffuserquestion(numQuestion):
+    if request.method=='POST':
+
+        questions = []
+        with open(questionDiffusée_file) as file:
+            questions=json.load(file)
+            
+
+        with open(question_file) as file:
+            databis=json.load(file)
+            dict = databis["questions"][int(numQuestion)-1]
+            
+        questions.append(dict)
+
+        with open(questionDiffusée_file, 'w') as file:
+            json.dump(questions,file,indent='\t')
+
+
+        return render_template("getQuestionDiffusée.html", question = dict, numQuestion= str(numQuestion))
+
+                
+
+    return redirect(url_for('home'))
+
+        
+@app.route('/supprimerQuestionDiffusée/<idQuestion>', methods=['POST', 'GET'])
+def supprimerQuestionDiffusée(idQuestion):
+#Je supprime la question diffusée dont le numéro est passé dans l'url
+    if request.method=='POST':
+        with open(questionDiffusée_file) as file:
+            data=json.load(file)
+            del data[len(data)-1]
+
+        with open(questionDiffusée_file, 'w') as file:
+            json.dump(data, file, indent='\t')
+
+        return redirect(url_for('home'))
+
+    else :
+        return redirect(url_for('home'))
+
+
+
+
+
+@app.route('/Home/listeQuestions', methods=['POST', 'GET'])
+def listeQuestions():
+
+    formulaire = nouvelleQuestion()
+    formulaire.etiquettes.choices=getEtiquettes()
+
+    listeTags=[]
+    with open(etiquette_file) as tags:
+
+        if request.method == "GET":
+            for ligne in tags.readlines():
+                listeTags.append(ligne[:-1])
+        else:
+            eti=request.form.getlist("etiquettes")
+            for t in eti:
+                listeTags.append(t[:-2])
+
+    with open(question_file) as file:
+        data=json.load(file)
+
+    codeQuestionHtml = ""
+    for i in range(len(data["questions"])):
+        for j in (data["questions"][i]["etiquettes"]):
+            if j in listeTags:
+                codeQuestionHtml = codeQuestionHtml + "<a href='/Home/Question/" + str(i+1) + "'>Question" + str(i+1) + "</a><br>"
+                break
+
+    return render_template("listeQuestions.html", balisesQuestions=codeQuestionHtml, form=formulaire)
+
+
+          
+
+@socketio.on('maj')
+def handle_maj(msg):
+    socketio.emit("MiseAJour",msg)
+
+
+
+if __name__=="__main__":
+    socketio.run(app)      
+
+
     
-app.run(host='0.0.0.0', port=8887, debug=True)
+#app.run(host='0.0.0.0', port=81, debug=True)

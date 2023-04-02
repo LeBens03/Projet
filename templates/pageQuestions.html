@@ -3,17 +3,27 @@
 {% block content %}
 <div class="column is-6 is-offset-3">
     <h6 class="subtitle">Choississez de vos questions précedemments saisies pour générer votre page de question {{titre}}</h6>
+    
+    <form method="POST">
+    <div class="field">
+        <label class="label">{{ form.etiquettes.label }}</label>
+        <div class="select is-multiple ">
+            {{ form.etiquettes(required="true") }} 
+        </div>
+    </div>
+
+    <div class="field">
+        <button class="button" type="submit" formaction="/Home/pageDeQuestions" >Séléctionner les étiquettes</button>
+    </div>
+    </form>
+
+    <br><br>
+
     <div class="box">
         <form method="POST" action="/Home/pageQuestions" id="form">
             <div class="field">
                 <div class="control">
                     <input class="input is-medium" type="text" name="titre" placeholder="Donner un titre à votre page " autofocus="" id="titre" required>
-                </div>
-            </div>
-
-            <div class="field">
-                <div class="control">
-                    <input class="input is-small" type="text" name="filtre" id="filter" placeholder="Filtrer les questions par etiquettes" autofocus="">
                 </div>
             </div>
 
@@ -31,7 +41,7 @@
                     <tr>
                         <th>
                             <label class="checkbox">
-                                <input type="checkbox" id="question{{i}}" name="check">
+                                <input type="checkbox" id="question{{i}}" name="check" value="{{i}}">
                             </label>
                         </th>
                         <th>{{i}}</th>

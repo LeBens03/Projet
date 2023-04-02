@@ -5,50 +5,15 @@
   Welcome, {{name}}!
 </h1>
 <div class="field">
-  <a href="Home/nouvelleQuestion" class="button">Créer une nouvelle question</a>
-</div>
-<br><br><br>
-<div class="dropdown is-hoverable">
-  <div class="dropdown-trigger">
-    <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-      <span>Vos questions précedemment crées</span>
-      <span class="icon is-small">
-        <i class="fas fa-angle-down" aria-hidden="true"></i>
-      </span>
-    </button>
-  </div>
-  <div class="dropdown-menu" id="dropdown-menu" role="menu">
-    <div class="dropdown-content">
-      {%for i in range(1, nb_Questions+1)%}
-      <a href="/Home/Question/{{i}}" class="dropdown-item">
-        Question {{ i }}
-      </a>
-      {% endfor %}
-    </div>
-  </div>
-</div><br><br><br><br><br>
-<div class="field">
-  <a href="/Home/pageDeQuestions" class="button">Générer une page de questions </a>
-  <div class="dropdown is-hoverable">
-    <div class="dropdown-trigger">
-      <button class="button" aria-haspopup="true" aria-controls="dropdown-menu">
-        <span>acceder une question</span>
-        <span class="icon is-small">
-          <i class="fas fa-angle-down" aria-hidden="true"></i>
-        </span>
-      </button>
-    </div>
-    <div class="dropdown-menu" id="dropdown-menu" role="menu">
-      <div class="dropdown-content">
-        {%for i in range(1, nb_Questions+1)%}
-        <a href="/Home/AccesQuestion/{{i}}" class="dropdown-item">
-          Question {{ i }}
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-  </div>
-  <a href="/Home/Questions" class="button">acceder une question </a>
+  <a href="/Home/nouvelleQuestion" class="button">Créer une nouvelle question</a>
+  <a href="/Home/listeQuestions" class="button">Accéder aux questions</a>
+  <a href="/Home/pageDeQuestions" class="button">Générer une page de questions</a>
+  <a href="/Home/compteEtudiants" class="button">Créer des comptes étudiants</a>
+  <br><br>
+  <a href="/Home/genererControle" class="button">Générer un contrôle</a>
+  <br>
+  <a href="/Home/nuageDeMot" class="button">Générer une question ouverte avec nuage de mot</a>
+  <a href="/Home/nuageDeMotEtudiant" class="button">Répondre à une question nuage</a>
 </div>
 
 {% endblock %}

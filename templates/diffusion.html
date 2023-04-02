@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+<script>
+    socket.on('connect', function() {
+        socket.emit('augmenteMax');
+    });
+</script>
+
+
+{% block content %}
+<div class="columns">
+    <div class="column">
+        <div class="field">
+            <div class="box">
+                {{ question.enonce }}
+                <p id="enonce-output"></p>
+            </div>
+        </div>
+        <div class="field">
+            <label class="label">Propositions</label>
+            {% autoescape off %}
+            {{code}}
+            {% endautoescape %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}

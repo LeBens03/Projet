@@ -19,6 +19,16 @@
 			"name": "Hassan",
 			"email": "hassan.login@hotmail.fr",
 			"password": "sha256$jNoRlEug2fZC3irR$c42da395c737777a5dc5b50b70a7d8f18fa8572a2498dfd56f757f1614becd97"
+		},
+		{
+			"name": "Victor",
+			"email": "victor@mail.fr",
+			"password": "sha256$CKi7iOjMuTFA1ENV$0eb643ffd9c8ee310e002f06bafd7f6169f51b9601ecddea7054f4b75665c0c5"
+		},
+		{
+			"name": "vic",
+			"email": "vic@mail.fr",
+			"password": "sha256$ROsRy9rMzNtQLzHh$0522f19bf7b34201ba168f5030d4f339eb213e8ba6185ecca50b87dc5c7acfbc"
 		}
 	]
 }

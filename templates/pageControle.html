@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="column is-7 is-offset-2">
+    <h6 class="subtitle">Sélectionner un nombre de questions par étiquettes pour générer votre contrôle</h6>
+    <br><br>
+
+    Il est à noter que malgré le nombre maximum de questions indiquées, il se peut qu'une ou plusieurs d'entre elles aient plusieurs étiquettes.
+    <br>
+    Ainsi, le nombre maximum de questions que vous allez demander peut s'avérer non exact, auquel cas vous en serez notifiez après avoir envoyé le formulaire.
+    
+    <form method="POST">
+    <div class="field">
+        <input type="number" name="nbCopie" min="0">nombre de copie</input>
+        <br>
+        <input type="number" name="nbQuestion" min="0">nombre de question</input>
+        <br>
+        {% autoescape off %}
+        {{questionParTag}}
+        {% endautoescape %}
+        <h6 class="subtitle">Sélectionnez un type de contrôle</h6>
+        <input type="radio" name="typequestion" value="ordre" checked>question ordonnée par étiquette
+        <br>
+        <input type="radio" name="typequestion" value="alea">question en désordre
+        <br><br>
+        <input type="radio" name="typeControle" value="anonymat" checked>Anonymat
+        <br>
+        <input type="radio" name="typeControle" value="etudiant">Identification des étudiants
+        <br><br>
+    </div>
+
+    <div class="field">
+        <button class="button" type="submit">Générer les pages de contrôles</button>
+    </div>
+    </form>
+
+</div>
+
+{% endblock %}

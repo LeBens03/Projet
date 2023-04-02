@@ -1,10 +1,14 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="column is-4 is-offset-4">
+
+<div class="column is-12 ">
     <h3 class="title">Question {{ numQuestion }}</h3>
     <div class="box">
         <form method="POST" action="/login">
+            <div class="field">
+                <label class="label">Code de la question :</label>  <h5>{{question.identifiant}}</h5>
+            </div>
             <div class="is-grouped">
                 <label class="label">Etiquettes :</label>
                 {% for etiquette in question.etiquettes %}
@@ -26,22 +30,24 @@
                 {% endfor %}
             </div>
             <div class="field">
-                <label class="label">Identifiant :</label>  <h5>{{question.identifiant}}</h5>
-            </div>
-            <div class="field">
                 <div class="buttons">
                     <button class="button is-success" type="button">
                         <span class="icon is-small">
                           <i class="fas fa-check"></i>
                         </span>
-                        <span>Modifier</span>
+                        <span>Affichage Réponses en direct</span>
                       </button>
-                    <button class="button is-danger" type="submit" formaction="/supprimerQuestion/{{numQuestion}}">Supprimer
+                    <button class="button is-danger" type="submit" formaction="/supprimerQuestion/{{numQuestion}}">Stop Réponses
                         <span class="icon is-small">
                           <i class="fas fa-times"></i>
                         </span>
                     </button>
-                    <button class="button is-warning" type="submit" formaction="/Home/Question/DiffuserQuestion{{numQuestion}}">Diffuser
+                    <button class="button is-warning" type="submit" formaction="/Home/Question/DiffuserQuestion{{numQuestion}}">Affichage Correction 
+                        <span class="icon is-small">
+                          <i class="fas fa-times"></i>
+                        </span>
+                    </button>
+                    <button class="button is-danger" type="submit" formaction="/supprimerQuestionDiffusée/{{numQuestion}}">Quitter
                         <span class="icon is-small">
                           <i class="fas fa-times"></i>
                         </span>
@@ -50,5 +56,6 @@
             </div>
         </form>
     </div>
-{% endblock %}
+</div>
 
+{% endblock %}
